@@ -30,13 +30,16 @@ def create_info(G):
     # convert G.edges and G.noded to numpy arrays, add to info
     edges_array = np.array(G.edges())
     nodes_array = np.array(G.nodes())
-    capacities_array = np.array([G[u][v]['capacity'] for u, v in G.edges()])
+    if nx.get_edge_attributes(G, 'capacity'):
+        capacities_array = np.array([G[u][v]['capacity'] for u, v in G.edges()])
+        info["capacities"] = np.diag(capacities_array)
+    else:
+        info["capacities"] = None
 
     info["num_nodes"] = G.number_of_nodes()
     info["num_edges"] = G.number_of_edges()
     info["edges"] = edges_array
     info["nodes"] = nodes_array
-    info["capacities"] = np.diag(capacities_array)
     info["incidence_matrix"] = incidence_matrix(edges_array, info["num_edges"], info["num_nodes"])
     info["adjacency_matrix"] = adajacency_matrix(edges_array, info["num_edges"], info["num_nodes"])
     info["maximum_spanning_tree"] = nx.maximum_spanning_tree(G)

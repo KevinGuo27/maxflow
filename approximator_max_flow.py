@@ -44,19 +44,33 @@ class ApproximatorMaxFlow:
         f = np.zeros(len(T.edges()))
         # leaves is a numpy array of the leaves of the tree
         leaves = self.info["maximum_spanning_tree_leaves"]
+
+        # Convert T.edges() to a list for indexing purposes
+        edges_list = list(T.edges())
+
         for leaf in leaves:
-            # add all the b values except for the leaf
-            edge_to_leaf = T.in_edges(leaf)[0]
-            parent = edge_to_leaf[0][0]
-            edges_list = list(T.edges())
-            edge_index = edges_list.index(edge_to_leaf)
-            f[edge_index] = np.sum(b) - b[leaf]
-            # if parent is leaf, change the leaf to parent
-            if parent in leaves:
-                leaf = parent
+            # For an undirected graph, there's only one edge for each leaf
+            # The edge can be represented as (leaf, neighbor) or (neighbor, leaf)
+            neighbors = list(T.neighbors(leaf))
+            if len(neighbors) != 1:
+                raise ValueError(f"Node {leaf} is not a leaf")
+
+            # Get the edge connected to the leaf
+            edge_to_leaf = (leaf, neighbors[0])
+
+            # Find the index of this edge in the list of edges
+            if edge_to_leaf in edges_list:
+                edge_index = edges_list.index(edge_to_leaf)
             else:
-                leaves = np.delete(leaves, np.where(leaves == leaf))
+                # If the edge is stored in reverse, (neighbor, leaf)
+                edge_to_leaf = (neighbors[0], leaf)
+                edge_index = edges_list.index(edge_to_leaf)
+
+            # The flow on this edge is the demand of the leaf
+            f[edge_index] = b[leaf]
+
         return f
+
 
     def almostRoute(self, b, epsilon):
         self.f = np.zeros(self.m)
