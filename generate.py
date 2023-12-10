@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import random
+import numpy as np
 
 # num_nodes = 1000
 # num_edges = 5000
 # capacity_range = (1, 100)
 def generate_random_graph(num_nodes, num_edges, capacity_range):
+    info = {}
     # Create an empty directed graph
     G = nx.Graph()
 
@@ -19,8 +21,43 @@ def generate_random_graph(num_nodes, num_edges, capacity_range):
         if u != v and not G.has_edge(u, v):
             capacity = random.randint(*capacity_range)
             G.add_edge(u, v, capacity=capacity)
+    
+    # convert G.edges and G.noded to numpy arrays, add to info
+    edges_array = np.array(G.edges())
+    nodes_array = np.array(G.nodes())
+    capacities_array = np.array([G[u][v]['capacity'] for u, v in G.edges()])
 
-    return G
+    info["num_nodes"] = num_nodes
+    info["num_edges"] = num_edges
+    info["edges"] = edges_array
+    info["nodes"] = nodes_array
+    info["capacities"] = np.diag(capacities_array)
+    info["incidence_matrix"] = incidence_matrix(edges_array, num_edges, num_nodes)
+    info["adjacency_matrix"] = adajacency_matrix(edges_array, num_edges, num_nodes)
+    return G, info
+
+def adajacency_matrix(edges, num_edges, num_nodes):
+    """
+    Returns the adjacency matrix of a graph
+    """
+    A = np.zeros((num_nodes, num_nodes))
+    for i in range(num_edges):
+        u, v = edges[i]
+        A[u, v] = 1
+        A[v, u] = 1
+    return A
+
+def incidence_matrix(edges, num_edges, num_nodes):
+    """
+    Returns the incidence matrix of a graph
+    """
+    A = np.zeros((num_edges, num_nodes))
+    for i in range(num_edges):
+        u, v = edges[i]
+        A[i, u] = 1
+        A[i, v] = -1
+    return A
+
 
 
 def visualize_graph(G):
@@ -38,7 +75,7 @@ def visualize_graph(G):
     plt.show()
 
 def test():
-    G = generate_random_graph(1000, 5000, (1, 100))
+    G, info = generate_random_graph(1000, 5000, (1, 100))
     visualize_graph(G)
     # Print the edges with capacities
     for u, v, data in G.edges(data=True):

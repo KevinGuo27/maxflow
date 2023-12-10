@@ -20,6 +20,12 @@ def RecursiveApproxMaxFlow(G, epsilon, b):
     # Step 5: Return ApproximatorMaxFlow
     return ApproximatorMaxFlow(G, RG, epsilon)
 
+def ApproximatorMaxFlow(G, R, epsilon):
+    """
+    A recursive algo that updates softmax of a potential function given in She13
+    """
+    return
+
 def UltraSparsifyAndReduce(G, kappa):
     return
 
@@ -63,12 +69,6 @@ def CongestionApproximator(G_prime):
     return
 
 def Convert(G, G_prime, RG_prime):
-    return
-
-def ApproximatorMaxFlow(G, RG, epsilon):
-    """
-    A recursive algo that updates softmax of a potential function given in She13
-    """
     return
 
 
