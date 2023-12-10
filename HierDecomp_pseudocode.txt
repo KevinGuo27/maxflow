@@ -31,12 +31,54 @@ Method GetSubclusters(S):
 
 Theorem 3.1 Implementation
 
+\\ Question: how to initialize F ???
+
 Method PartitionA(S): 
     Input: a cluster S \subset V
     Output: a list of subclusters Z_1, ..., Z_z
     1.  Use Lemma 3.1, Lemma 3.2 recursively to obtain a flow 
+    Return Z
 
-Method 
+Method SeparateST(A, u, mu_bar):
+    Input: a set of edge candidate A, projected capacity u, projected average mu_bar
+    Output: a source subset A_s, a target subset A_t, a separation value eta \\ satisfies Lemma 3.3
+    2.  L <- A[u_e < mu_bar]
+    3.  R <- A[u_e >= mu_bar]
+    4.  If |L| > |R|:
+    5.  |   Switch L, R 
+    6.  |   If P(L) < 1/20 P(A):
+    7.  |   |   eta <- mu_bar - 4P(L)/|A|
+    8.  |   |   A_t <- A[u_e >= eta]
+    9.  |   |   R' <- A[u_e <= mu_bar - 6P(L)/|A|]
+    10. |   |   Return R'[max |A|/8 fraction], A_t, eta
+    11. Endif 
+    12. If P(L) >= 1/20 P(A):
+    13. |   Return L[max |A|/8 fraction], R, mu_bar
+    14. Endif 
+    15. eta <- mu_bar + 4P(L)/|A|
+    16. A_t <- A[u_e <= eta]
+    17. R' <- A[u_e >= mu_bar + 6P(L)/|A|]
+    Return R'[max |A|/8 fraction], A_t, eta
+
+Method PartialFractionalMatching(S, F, F_bar):
+    Input: a set of edge candidate F, commodity matrix F_bar
+    Output: a new collection of edges F \subset E[S] that satisfies some props of Lemma 3.1 or Lemma 3.2
+    1.  u, mu_bar <- RandProj(F_bar), RandProj(AvgFlow(F_bar)) \\ random projection
+    2.  A_s, A_t, eta <- SeparateST(F, u, mu_bar)
+    3.  V' <- V' + {s, t}
+    4.  u' <- capacity 2 for all edges in G'
+    5.  Connect s to A_s with capacity 1
+    6.  Connect t to A_t with capacity 1/2
+    7.  G'_st <- G'
+    8.  f <- ApproximateMaxFlow(G'_st, s, t, 1/log^3(n))
+    9.  Scale f so that f[x[A_s], s] >= 1/2 becomes 1 \\ how to scale this? how to find a feasible path? Maybe use Dijkstra
+    10. C' <- Somehow decompose this into partial fractional matchings \\ C' is a set of cut edges in G'_st. TODO: what is this?
+    11. C <- corresponding edges of C' in G 
+
+
+
+
+Method Deletion(): 
 
 
 Method PartitionB(S, B, Z):
