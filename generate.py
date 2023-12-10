@@ -22,19 +22,26 @@ def generate_random_graph(num_nodes, num_edges, capacity_range):
             capacity = random.randint(*capacity_range)
             G.add_edge(u, v, capacity=capacity)
     
+    info = create_info(G)
+    return G, info
+
+def create_info(G):
+    info = {}
     # convert G.edges and G.noded to numpy arrays, add to info
     edges_array = np.array(G.edges())
     nodes_array = np.array(G.nodes())
     capacities_array = np.array([G[u][v]['capacity'] for u, v in G.edges()])
 
-    info["num_nodes"] = num_nodes
-    info["num_edges"] = num_edges
+    info["num_nodes"] = G.number_of_nodes()
+    info["num_edges"] = G.number_of_edges()
     info["edges"] = edges_array
     info["nodes"] = nodes_array
     info["capacities"] = np.diag(capacities_array)
-    info["incidence_matrix"] = incidence_matrix(edges_array, num_edges, num_nodes)
-    info["adjacency_matrix"] = adajacency_matrix(edges_array, num_edges, num_nodes)
-    return G, info
+    info["incidence_matrix"] = incidence_matrix(edges_array, info["num_edges"], info["num_nodes"])
+    info["adjacency_matrix"] = adajacency_matrix(edges_array, info["num_edges"], info["num_nodes"])
+    info["maximum_spanning_tree"] = nx.maximum_spanning_tree(G)
+    info["maximum_spanning_tree_leaves"] = np.array([node for node in info["maximum_spanning_tree"].nodes() if info["maximum_spanning_tree"].degree(node) == 1])
+    return info
 
 def adajacency_matrix(edges, num_edges, num_nodes):
     """

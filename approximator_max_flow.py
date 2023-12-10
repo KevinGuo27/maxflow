@@ -1,4 +1,6 @@
+from typing import Any
 import numpy as np
+import networkx as nx
 class ApproximatorMaxFlow:
     """
     A recursive algo that updates softmax of a potential function given in She13
@@ -14,6 +16,47 @@ class ApproximatorMaxFlow:
         self.b = None
         self.alpha = 0.01
         self.B = B
+
+    def __call__(self, b0):
+        b = [b0]
+        f = [np.zeros_like(b0)]
+        T = int(np.log(2 * self.m))
+
+        # Iteratively find the almost routes
+        for i in range(1, T + 1):
+            # Update b_i based on the flow found in the previous iteration
+            b.append(b[i - 1] - self.B.dot(f[i - 1]))
+            # Find the flow f_i and the potential S_i using almostRoute
+            f_i, _ = self.almostRoute(b[i], 0.5)  # Using 0.5 as per the instructions
+            f.append(f_i)
+
+        # Find the last flow f_T+1 for a flow routing b_T+1 in a maximal spanning tree of G
+        b_T_plus_1 = b0 - self.B.dot(f[T])
+        f_T_plus_1, _ = self.route_in_tree(self.info["maximum_spanning_tree"], b_T_plus_1)
+
+        # Sum up all the f_i to get the total flow
+        total_flow = np.sum(f, axis=0) + f_T_plus_1
+
+        # Return the total flow and the last set of potentials
+        return total_flow
+        
+    def route_in_tree(self, T, b):
+        f = np.zeros(len(T.edges()))
+        # leaves is a numpy array of the leaves of the tree
+        leaves = self.info["maximum_spanning_tree_leaves"]
+        for leaf in leaves:
+            # add all the b values except for the leaf
+            edge_to_leaf = T.in_edges(leaf)[0]
+            parent = edge_to_leaf[0][0]
+            edges_list = list(T.edges())
+            edge_index = edges_list.index(edge_to_leaf)
+            f[edge_index] = np.sum(b) - b[leaf]
+            # if parent is leaf, change the leaf to parent
+            if parent in leaves:
+                leaf = parent
+            else:
+                leaves = np.delete(leaves, np.where(leaves == leaf))
+        return f
 
     def almostRoute(self, b, epsilon):
         self.f = np.zeros(self.m)
