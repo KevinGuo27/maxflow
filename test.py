@@ -4,6 +4,7 @@ import networkx as nx
 import numpy as np
 from approximator_max_flow import ApproximatorMaxFlow
 from generate import generate_random_graph, create_info
+from generate import visualize_graph
 
 def timer_function(algorithm, *args, **kwargs):
     """
@@ -84,7 +85,7 @@ def test_approximator():
         G = nx.complete_graph(5)
         for u, v in G.edges():
             G[u][v]['capacity'] = np.random.randint(1, 10)
-        demands = np.random.randint(-10, 10, size=len(G.nodes()))
+        demands = np.random.randint(-2, 2, size=len(G.nodes()))
         demands[-1] = -np.sum(demands[:-1])  # Adjust the last demand to make the sum zero
         print("Demands:", demands)
         for n, demand in zip(G.nodes(), demands):
@@ -92,7 +93,7 @@ def test_approximator():
 
         # Create the maximum weight spanning tree T from G
         T = nx.maximum_spanning_tree(G, weight='capacity')
-
+        visualize_graph(T)
         # Create R matrix as per the example
         R = create_R_matrix(T, G)
 
@@ -102,6 +103,7 @@ def test_approximator():
         # Instantiate the ApproximatorMaxFlow class and test the flow approximation
         epsilon = 0.1
         info = create_info(G)
+        print(info)
         approximator = ApproximatorMaxFlow(G, R, epsilon, info)  # B is not used in this context
         result_flow = approximator(demands)
         
