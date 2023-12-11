@@ -5,7 +5,7 @@ class ApproximatorMaxFlow:
     """
     A recursive algo that updates softmax of a potential function given in She13
     """
-    def __init__(self, G, R, epsilon, info, B):
+    def __init__(self, G, R, epsilon, info):
         self.G = G
         self.R = R
         self.epsilon = epsilon
@@ -14,26 +14,26 @@ class ApproximatorMaxFlow:
         self.n = info["num_nodes"]
         self.f = None
         self.b = None
-        self.alpha = 0.01
-        self.B = B
+        self.alpha = 10
+        self.B = info["incidence_matrix"]
 
     def __call__(self, b0):
         b = [b0]
-        f = [np.zeros_like(b0)]
+        f, _ = self.almostRoute(b0, self.epsilon)
+        f = [f]
         T = int(np.log(2 * self.m))
 
         # Iteratively find the almost routes
         for i in range(1, T + 1):
             # Update b_i based on the flow found in the previous iteration
-            b.append(b[i - 1] - self.B.dot(f[i - 1]))
+            b.append(b[i - 1] - self.B.T.dot(f[i - 1]))
             # Find the flow f_i and the potential S_i using almostRoute
             f_i, _ = self.almostRoute(b[i], 0.5)  # Using 0.5 as per the instructions
             f.append(f_i)
 
         # Find the last flow f_T+1 for a flow routing b_T+1 in a maximal spanning tree of G
-        b_T_plus_1 = b0 - self.B.dot(f[T])
-        f_T_plus_1, _ = self.route_in_tree(self.info["maximum_spanning_tree"], b_T_plus_1)
-
+        b_T_plus_1 = b0 - self.B.T.dot(f[T])
+        f_T_plus_1 = self.route_in_tree(self.info["maximum_spanning_tree"], b_T_plus_1)
         # Sum up all the f_i to get the total flow
         total_flow = np.sum(f, axis=0) + f_T_plus_1
 
@@ -91,11 +91,12 @@ class ApproximatorMaxFlow:
             delta = np.linalg.norm(grad_potential, 1)
 
             # Update f if delta is large enough
+            print("Delta:", delta)
             if delta >= epsilon / 4:
                 # Assuming C and Ce are available in the class
-                C_inv = 1 / self.info["capacities"]
+                C_inv = np.linalg.inv(self.info["capacities"])
                 step_size = delta / (1 + 4 * self.alpha**2)
-                self.f -= step_size * np.sign(grad_potential) * C_inv
+                self.f -= step_size * np.sign(grad_potential) @ C_inv
             else:
                 # Terminate and output f with potentials, undo scaling
                 self.f /= scale  # Undo the scaling of f
@@ -106,7 +107,7 @@ class ApproximatorMaxFlow:
         return self.f, v
     
     def calculatePotentials(self, f, b):
-        x2 = 2 * self.alpha * self.R * (b - self.B.dot(f))
+        x2 = 2 * self.alpha * self.R @ (b - self.B.T.dot(f))
         
         # Calculate the gradient of lmax for x2
         p2 = self.grad_lmax(x2)
@@ -121,25 +122,24 @@ class ApproximatorMaxFlow:
     def gradPotentialFunction(self, f, b):
         # Compute x1 and its gradient
         C = self.info["capacities"]
-        C_inv = 1 / C
-        x1 = C_inv * f
+        C_inv = np.linalg.inv(C)
+        x1 = C_inv @ f
         p1 = self.grad_lmax(x1)
 
         # Compute x2 and its gradient
-        Bf = self.B.dot(f)
+        Bf = self.B.T.dot(f)
         x2 = 2 * self.alpha * self.R @ (b - Bf)
         p2 = self.grad_lmax(x2)
 
         # Compute the gradient of the potential function
         v = self.R.T @ p2
-        grad_phi = C_inv * p1 - 2 * self.alpha * (self.B.T @ v)
+        grad_phi = C_inv @ p1 - 2 * self.alpha * (self.B @ v)
 
         return grad_phi
 
     def grad_lmax(self, x):
         # Calculate the sum of exp(xi) and exp(-xi) for all components
         sum_exp = np.sum(np.exp(x) + np.exp(-x))
-        
         # Calculate the gradient of lmax
         grad = (np.exp(x) - np.exp(-x)) / sum_exp
         
@@ -151,12 +151,12 @@ class ApproximatorMaxFlow:
     def potentialFunction(self, f, b):
         # Compute the element-wise inverse of C
         C = self.info["capacities"]
-        C_inv = 1 / C
+        C_inv = np.linalg.inv(C)
         # First term: lmax of the element-wise product of C_inv and f
         term1 = self.lmax(C_inv * f)
 
         # Second term: Compute Bf (matrix-vector multiplication)
-        Bf = self.B.dot(f)
+        Bf = self.B.T.dot(f)
         # Compute 2aR(b - Bf)
         term2_vector = 2 * self.alpha * self.R * (b - Bf)
         # lmax of the second term
