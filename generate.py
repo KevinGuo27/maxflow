@@ -78,8 +78,9 @@ def visualize_graph(G):
     nx.draw_networkx_nodes(G, pos, node_size=20, node_color="blue", alpha=0.6)
     nx.draw_networkx_edges(G, pos, edge_color="gray", alpha=0.5)
 
-    # Draw node labels (optional, might be cluttered for large graphs)
-    # nx.draw_networkx_labels(G, pos)
+    # Draw node labels
+    node_labels = {node: node for node in G.nodes()}
+    nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=12)
 
     # Show the plot
     plt.show()

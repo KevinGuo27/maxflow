@@ -1,5 +1,4 @@
 import time
-from maxflow import ford_fulkerson_max_flow
 import networkx as nx
 import numpy as np
 from approximator_max_flow import ApproximatorMaxFlow
@@ -82,7 +81,8 @@ def test_approximator():
     
     def approximator_test():
         # Create a sample graph G with random weights and demands
-        G = nx.complete_graph(20)
+        G = nx.complete_graph(5)
+        visualize_graph(G)
         for u, v in G.edges():
             G[u][v]['capacity'] = np.random.randint(1, 3)
         demands = np.random.randint(-2, 2, size=len(G.nodes()))
@@ -107,9 +107,6 @@ def test_approximator():
         info = create_info(G)
         approximator = ApproximatorMaxFlow(G, R, epsilon, info)  # B is not used in this context
         result_flow = approximator(demands)
-
-
-        test_ford_fulkerson(G)
         
         return result_flow
 

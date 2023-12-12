@@ -2,6 +2,7 @@ from typing import Any
 import numpy as np
 import networkx as nx
 from generate import generate_random_graph, create_info
+from generate import visualize_graph
 class ApproximatorMaxFlow:
     """
     A recursive algo that updates softmax of a potential function given in She13
@@ -31,7 +32,7 @@ class ApproximatorMaxFlow:
             f.append(f_i)
 
         # Find the last flow f_T+1 for a flow routing b_T+1 in a maximal spanning tree of G
-        b_T_plus_1 = b0 - self.B.T.dot(f[T])
+        b_T_plus_1 = b[i] - self.B.T.dot(f[T])
         f_T_plus_1 = self.route_in_tree(self.info["maximum_spanning_tree"], b_T_plus_1)
         # Sum up all the f_i to get the total flow
         print("flows from AlmostFlow:", f)
@@ -40,34 +41,64 @@ class ApproximatorMaxFlow:
 
         # Return the total flow and the last set of potentials
         print("Original demand:", b0)
+        print("b_T+1:", b_T_plus_1)
         print("Demand sent by total flow:", self.B.T @ total_flow)
         print("Demand sent by almostflow:", self.B.T @ np.sum(f, axis=0))
         return total_flow
         
     def route_in_tree(self, T, b):
+        # Initialize the flow array for all edges in G to zero
+        visualize_graph(T)
         f = np.zeros(len(self.G.edges()))
-    
+
         # Map each edge in G to its index for quick access
         edge_to_index = {edge: idx for idx, edge in enumerate(self.G.edges())}
-        
+
+        # Create a copy of T and b to manipulate without altering the originals
+        T_copy = T.copy()
+        b_copy = b.copy()
+
         # Iterate over the leaves and set the flow for the corresponding edges in T
-        for leaf in self.info["maximum_spanning_tree_leaves"]:
+        leaves = set([node for node in T_copy.nodes() if T_copy.degree(node) == 1])
+        visited = set()
+
+        while leaves:
+            print("Leaves:", leaves)
+            leaf = leaves.pop()
+            visited.add(leaf)
+
             # There is only one neighbor for a leaf in a tree
-            neighbor = next(T.neighbors(leaf))
-            
-            # The edge could be represented either way (leaf, neighbor) or (neighbor, leaf) in edge_to_index
+            neighbors = list(T_copy.neighbors(leaf))
+            print("Neighbors:", neighbors)
+            if(len(neighbors) == 0):
+                break
+            if len(neighbors) != 1:
+                raise ValueError(f"Leaf {leaf} does not have exactly one neighbor")
+            neighbor = neighbors[0]
+
+            # Find the edge index in the original graph G
             if (leaf, neighbor) in edge_to_index:
                 edge = (leaf, neighbor)
             elif (neighbor, leaf) in edge_to_index:
                 edge = (neighbor, leaf)
             else:
-                continue  # This edge is not in the original graph G
-            
-            # Set the flow on the edge in T to the demand of the leaf
-            f[edge_to_index[edge]] = b[leaf]
+                # If the edge isn't in the edge_to_index mapping, it's not part of G
+                continue
 
-        # All other edges in G not in T will have flow of 0, as initialized
+            # Set the flow on the edge in T to the demand of the leaf
+            f[edge_to_index[edge]] = b_copy[leaf]
+
+            # Remove the leaf from T and its demand from the copy of b
+            T_copy.remove_node(leaf)
+            b_copy[leaf] = 0
+
+            # Check if the neighbor is a leaf after removing the current leaf
+            if T_copy.degree(neighbor) == 1 and neighbor not in visited:
+                leaves.add(neighbor)
+
         return f
+
+
 
 
     def almostRoute(self, b0, epsilon):
