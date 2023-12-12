@@ -1,4 +1,5 @@
 import networkx as nx
+from networkx import ford_fulkerson_max_flow
 import numpy as np
 from math import log, log2
 
@@ -75,7 +76,7 @@ def Convert(G, G_prime, RG_prime):
 
 def ford_fulkerson_max_flow(G, source, sink):
     # Run Ford-Fulkerson algorithm
-    R = nx.ford_fulkerson(G, source, sink)
+    R = ford_fulkerson_max_flow(G, source, sink)
     # The flow value can be accessed from R.graph['flow_value']
     max_flow_value = R.graph['flow_value']
     return max_flow_value, R

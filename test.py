@@ -82,7 +82,7 @@ def test_approximator():
     
     def approximator_test():
         # Create a sample graph G with random weights and demands
-        G = nx.complete_graph(5)
+        G = nx.complete_graph(20)
         for u, v in G.edges():
             G[u][v]['capacity'] = np.random.randint(1, 3)
         demands = np.random.randint(-2, 2, size=len(G.nodes()))
@@ -103,10 +103,13 @@ def test_approximator():
         demands = np.array([G.nodes[n]['demand'] for n in range(len(G.nodes()))])
 
         # Instantiate the ApproximatorMaxFlow class and test the flow approximation
-        epsilon = 0.1
+        epsilon = 0.5
         info = create_info(G)
         approximator = ApproximatorMaxFlow(G, R, epsilon, info)  # B is not used in this context
         result_flow = approximator(demands)
+
+
+        test_ford_fulkerson(G)
         
         return result_flow
 
@@ -118,5 +121,5 @@ if __name__ == "__main__":
     # G = nx.DiGraph()
     # G.add_nodes_from(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Z'])
     # G.add_edges_from([('A', 'B', {'capacity': 3}), ('A', 'C', {'capacity': 3}), ('B', 'C', {'capacity': 2}), ('B', 'D', {'capacity': 3}), ('C', 'E', {'capacity': 2}), ('D', 'E', {'capacity': 4}), ('D', 'F', {'capacity': 2}), ('E', 'F', {'capacity': 3}), ('E', 'G', {'capacity': 2}), ('F', 'G', {'capacity': 3}), ('G', 'Z', {'capacity': 3})])
-    # test_ford_fulkerson(G)
+    # test_ford_fulkerson()
     test_approximator()

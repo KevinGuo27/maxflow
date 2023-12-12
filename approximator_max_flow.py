@@ -13,7 +13,7 @@ class ApproximatorMaxFlow:
         self.info = info
         self.m = info["num_edges"]
         self.n = info["num_nodes"]
-        self.alpha = 10
+        self.alpha = self.m
         self.B = info["incidence_matrix"]
 
     def __call__(self, b0):
@@ -79,6 +79,7 @@ class ApproximatorMaxFlow:
         C = self.info["capacities"]
         C_inv = np.linalg.inv(C)
         count = 0
+        print(self.alpha**2 * self.epsilon**(-3) * np.log(self.n))
         while True:
             potential = self.potentialFunction(f, b)
             while potential < (16 * epsilon**-1 * np.log2(self.n)):
@@ -88,17 +89,17 @@ class ApproximatorMaxFlow:
                 potential = self.potentialFunction(f, b)
 
             count += 1
-            print("Iter:", count)
+            # print("Iter:", count)
 
             # Calculate gradient and delta
             grad_potential = self.gradPotentialFunction(f, b)
             delta = np.linalg.norm(C @ grad_potential, ord=1)
-            print("potential:", potential)
-            print("scale:", scale)
-            print("normalized potential:", potential / scale)
+            # print("potential:", potential)
+            # print("scale:", scale)
+            # print("normalized potential:", potential / scale)
 
             # Update f if delta is large enough
-            if delta >= epsilon / 4 and count < 1600:
+            if delta >= epsilon / 4 and count < self.alpha**2 * epsilon**(-3) * np.log(self.n):
                 # Assuming C and Ce are available in the class
                 step_size = delta / (1 + 4 * self.alpha**2)
                 f -= step_size * np.sign(grad_potential)
@@ -175,8 +176,8 @@ class ApproximatorMaxFlow:
         # lmax of the second term
         term2 = self.lmax(term2_vector)
 
-        print("Term 1:", term1)
-        print("Term 2:", term2)
+        # print("Term 1:", term1)
+        # print("Term 2:", term2)
 
         # Sum the two terms to get the potential function value
         potential = term1 + term2
