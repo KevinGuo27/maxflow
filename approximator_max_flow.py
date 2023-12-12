@@ -34,9 +34,14 @@ class ApproximatorMaxFlow:
         b_T_plus_1 = b0 - self.B.T.dot(f[T])
         f_T_plus_1 = self.route_in_tree(self.info["maximum_spanning_tree"], b_T_plus_1)
         # Sum up all the f_i to get the total flow
+        print("flows from AlmostFlow:", f)
+        print("Flow from max spanning tree:", f_T_plus_1)
         total_flow = np.sum(f, axis=0) + f_T_plus_1
 
         # Return the total flow and the last set of potentials
+        print("Original demand:", b0)
+        print("Demand sent by total flow:", self.B.T @ total_flow)
+        print("Demand sent by almostflow:", self.B.T @ np.sum(f, axis=0))
         return total_flow
         
     def route_in_tree(self, T, b):
@@ -73,31 +78,39 @@ class ApproximatorMaxFlow:
         scale = 1
         C = self.info["capacities"]
         C_inv = np.linalg.inv(C)
-        print(b)
+        count = 0
         while True:
             potential = self.potentialFunction(f, b)
             while potential < (16 * epsilon**-1 * np.log2(self.n)):
-                # Scale f and b
                 f *= 17/16
                 b *= 17/16
                 scale *= 17/16
                 potential = self.potentialFunction(f, b)
 
+            count += 1
+            print("Iter:", count)
+
             # Calculate gradient and delta
             grad_potential = self.gradPotentialFunction(f, b)
-            delta = np.linalg.norm(grad_potential, ord=1)
+            delta = np.linalg.norm(C @ grad_potential, ord=1)
+            print("potential:", potential)
+            print("scale:", scale)
+            print("normalized potential:", potential / scale)
 
             # Update f if delta is large enough
-            if delta >= epsilon / 4:
+            if delta >= epsilon / 4 and count < 1600:
                 # Assuming C and Ce are available in the class
                 step_size = delta / (1 + 4 * self.alpha**2)
                 f -= step_size * np.sign(grad_potential)
-                # f -= step_size * np.diag(C)
-                print("Grad potential:", grad_potential)
-                print("After:", np.sign(grad_potential))
+                # # f -= step_size * np.diag(C)
+                # print("Grad potential:", grad_potential)
+                # print("After:", np.sign(grad_potential))
+                # print("f:", f)
+                # print("b:", b)
             else:
                 # Terminate and output f with potentials, undo scaling
                 f /= scale  # Undo the scaling of f
+                f /= scaling_factor
                 break  # Exit the loop
 
         # Assuming a method to calculate the potentials is defined
@@ -127,12 +140,14 @@ class ApproximatorMaxFlow:
         # Compute x2 and its gradient
         Bf = self.B.T.dot(f)
         x2 = 2 * self.alpha * self.R @ (b - Bf)
+        # print("b-Bf:", b - Bf)
         p2 = self.grad_lmax(x2)
 
         # Compute the gradient of the potential function
         v = self.R.T @ p2
         grad_phi = C_inv @ p1 - 2 * self.alpha * (self.B @ v)
 
+        # print("Gradient of potential function:", grad_phi)
         return grad_phi
 
     def grad_lmax(self, x):
@@ -159,6 +174,9 @@ class ApproximatorMaxFlow:
         term2_vector = 2 * self.alpha * self.R @ (b - Bf)
         # lmax of the second term
         term2 = self.lmax(term2_vector)
+
+        print("Term 1:", term1)
+        print("Term 2:", term2)
 
         # Sum the two terms to get the potential function value
         potential = term1 + term2

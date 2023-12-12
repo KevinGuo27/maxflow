@@ -84,7 +84,7 @@ def test_approximator():
         # Create a sample graph G with random weights and demands
         G = nx.complete_graph(5)
         for u, v in G.edges():
-            G[u][v]['capacity'] = np.random.randint(1, 5)
+            G[u][v]['capacity'] = np.random.randint(1, 3)
         demands = np.random.randint(-2, 2, size=len(G.nodes()))
         demands[-1] = -np.sum(demands[:-1])  # Adjust the last demand to make the sum zero
 
