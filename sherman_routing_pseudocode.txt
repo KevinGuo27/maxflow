@@ -1,0 +1,79 @@
+Blackbox algorithms:
+    ABN (Th'm 5.3): given G = (V, E), a length function l on G, generates a spanning tree T of G such that 
+        average stretch of edges in T is O(log n)
+    Racke and Young (Th'm 5.2): Fixing alpha > log(m), a family of graphs G_fam, for any length function on 
+        G we can find a subgraph H_l = (V, E_Hl, u_Hl) of G belongs to G_fam and three criterions, then outputs
+        a t-sparse (2 * alpha, G_fam) decomposition of G 
+
+Algorithm LowStretchTrees(G, l'): \\ ABN 
+    Input: a graph G = (V, E, u), a length function on G
+    Output: a low stretch spanning tree T
+        ?
+    Return T
+
+Algorithm ConstructHl(G, l, t):
+    Input: a graph G = (V, E, u), a length function l over G, a sparsity parameter t
+    Output: a subgraph H_l of G that satisfies the criteria of Th'm 5.2
+        T <- spanning tree of G with capacities u_T on edges (given by path capacity)
+        G_bar <- multigraph of G that has vertex set V and each edge e repeats r(e) = 1 + floor(l(e) * u(e) * |E| / l(G)) times
+        T_l, alpha <- LowStretchTrees(G_bar, l') \\ need to leverage ABN algorithm on multigraphs (this l' is normalized l)
+        F_j <- empty dictionary that consists of floor(log(m) * max(u)) keys, in which each value is an empty linked list
+        For e in E(T_l) do:
+        |   j <- floor(log(m * max(u) * gamma_Tl(e)))
+        |   F_j[j].add(e)
+        Endfor
+        E(T_l) <- sorted E(T_l) w.r.t. gamma_Tl(e)
+        threshold <- 4 * (2*alpha+1) * m * (log(m) * max(u) + 1) / t
+        e* <- E(T_l)[floor(threshold)]
+        j* <- floor(log(m * max(u) * gamma_Tl(e*)))
+        For j from 0 -> j*+1 do:
+        |   If |F_j[j]| >= 4 * (2*alpha+1) * m / t:
+        |   |   j_bar <- j+1
+        |   |   Break   
+        |   Endif
+        Endfor 
+        F <- [F_j[j] for j <= j_bar]
+    Return H(T, F)
+
+Algorithm ComputeHDecomposition(G, t):
+    Input: a graph G = (V, E, u), a sparsity parameter t 
+    Output: a t-sparce (2*alpha, G_fam)-decomposition ({lambda[i], H[i]})
+        G_decomp <- Th'm 5.2 with G, t
+    Return G_decomp
+
+Algorithm ConvertToAlmostJTree(G, H):
+    Input: a graph G = (V, E, u), a graph from H_fam as H(T, F)
+    Output: an almost-j-tree that can be 3-embedded into H and vice versa
+        G(T, F).addEdge(E(T) - F)
+        G(T, F).assignWeights(2u_T(e))
+        V <- set of ordered pairs (v_1[e], v_2[e]) 
+        For f in V do:
+        |   G(T, F).addEdge(f)
+        |   Assign weights to f sum(u(e) for e in Proj(f))
+        Endfor
+    Return G(T, F)
+
+Algorithm ConvertToJTree(G, G'):
+    Input: a graph G = (V, E, u), an almost-j-tree G' = (V', E', u')
+    Output: an O(j)-tree
+        F_bar <- all degree 1 vertices in G' and their incident edge
+        G'.remove(F_bar)
+        W <- degree 2 vertices in G'
+        p_1, ..., p_k <- edge-disjoint paths from G' with ednpoints (v_1[i], v_2[i]) in V' - W
+        For i = 1 -> k do:
+        |   e_i <- argmin u(e) for e in p_i
+        |   p'_i <- p_i - e_i
+        |   Assign capacities to each edge f in p'_i with u(f) + u(e_i)
+        |   E_bar.add(p'_i), F_bar.add(p'_i * W)
+        |   E_bar.add(v_1[i], v_2[i]) with capacity u(e_i)
+        Endfor        
+    Return G_bar(V' - F_bar, F_bar) = (V', E_bar, u_bar)
+
+Algorithm FindJTreeDecomposition(G, t):
+    Input: a graph G = (V, E, u), a sparsity parameter t
+    Output: a convex combination of O(m*log(m)/t)-trees 
+        G_decomp <- ComputeHDecomposition(G, t)
+        For H in G_decomp[Tree] do
+        |   G' <- ConvertToJTree(G, ConvertToAlmostJTree(G, H))
+        Endfor
+    Return G_decomp

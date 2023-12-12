@@ -40,44 +40,40 @@ class ApproximatorMaxFlow:
         return total_flow
         
     def route_in_tree(self, T, b):
-        f = np.zeros(len(T.edges()))
-        # leaves is a numpy array of the leaves of the tree
-        leaves = self.info["maximum_spanning_tree_leaves"]
-
-        # Convert T.edges() to a list for indexing purposes
-        edges_list = list(T.edges())
-
-        for leaf in leaves:
-            # For an undirected graph, there's only one edge for each leaf
-            # The edge can be represented as (leaf, neighbor) or (neighbor, leaf)
-            neighbors = list(T.neighbors(leaf))
-            if len(neighbors) != 1:
-                raise ValueError(f"Node {leaf} is not a leaf")
-
-            # Get the edge connected to the leaf
-            edge_to_leaf = (leaf, neighbors[0])
-
-            # Find the index of this edge in the list of edges
-            if edge_to_leaf in edges_list:
-                edge_index = edges_list.index(edge_to_leaf)
+        f = np.zeros(len(self.G.edges()))
+    
+        # Map each edge in G to its index for quick access
+        edge_to_index = {edge: idx for idx, edge in enumerate(self.G.edges())}
+        
+        # Iterate over the leaves and set the flow for the corresponding edges in T
+        for leaf in self.info["maximum_spanning_tree_leaves"]:
+            # There is only one neighbor for a leaf in a tree
+            neighbor = next(T.neighbors(leaf))
+            
+            # The edge could be represented either way (leaf, neighbor) or (neighbor, leaf) in edge_to_index
+            if (leaf, neighbor) in edge_to_index:
+                edge = (leaf, neighbor)
+            elif (neighbor, leaf) in edge_to_index:
+                edge = (neighbor, leaf)
             else:
-                # If the edge is stored in reverse, (neighbor, leaf)
-                edge_to_leaf = (neighbors[0], leaf)
-                edge_index = edges_list.index(edge_to_leaf)
+                continue  # This edge is not in the original graph G
+            
+            # Set the flow on the edge in T to the demand of the leaf
+            f[edge_to_index[edge]] = b[leaf]
 
-            # The flow on this edge is the demand of the leaf
-            f[edge_index] = b[leaf]
-
+        # All other edges in G not in T will have flow of 0, as initialized
         return f
 
 
     def almostRoute(self, b0, epsilon):
         f = np.zeros(self.m)
+        print("Initial approximated congestion:", self.R @ b0)
         scaling_factor = (16 * self.epsilon**-1 * np.log2(self.n)) / (2 * self.alpha * np.linalg.norm(self.R @ b0, ord=np.inf))
         b = b0 * scaling_factor
         scale = 1
         C = self.info["capacities"]
         C_inv = np.linalg.inv(C)
+        print(b)
         while True:
             potential = self.potentialFunction(f, b)
             while potential < (16 * epsilon**-1 * np.log2(self.n)):
@@ -89,13 +85,16 @@ class ApproximatorMaxFlow:
 
             # Calculate gradient and delta
             grad_potential = self.gradPotentialFunction(f, b)
-            delta = np.linalg.norm(C @ grad_potential, ord=1)
+            delta = np.linalg.norm(grad_potential, ord=1)
 
             # Update f if delta is large enough
             if delta >= epsilon / 4:
                 # Assuming C and Ce are available in the class
                 step_size = delta / (1 + 4 * self.alpha**2)
-                f -= step_size * np.sign(grad_potential) @ C
+                f -= step_size * np.sign(grad_potential)
+                # f -= step_size * np.diag(C)
+                print("Grad potential:", grad_potential)
+                print("After:", np.sign(grad_potential))
             else:
                 # Terminate and output f with potentials, undo scaling
                 f /= scale  # Undo the scaling of f
