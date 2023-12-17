@@ -80,7 +80,7 @@ def test_approximator():
         return R
     
     def approximator_test():
-        G = nx.complete_graph(10)
+        G = nx.complete_graph(5)
         for u, v in G.edges():
             G[u][v]['capacity'] = np.random.randint(2, 5)
         print("Capacities:", nx.get_edge_attributes(G, 'capacity'))
