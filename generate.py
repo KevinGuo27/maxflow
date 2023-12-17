@@ -85,6 +85,46 @@ def visualize_graph(G):
     # Show the plot
     plt.show()
 
+def plot_delta_iterations(delta_data_list):
+    num_graphs = len(delta_data_list)
+    fig, axs = plt.subplots(num_graphs, figsize=(10, num_graphs * 3))
+
+    for i, delta_data in enumerate(delta_data_list):
+        iterations = [data[0] for data in delta_data]
+        deltas = [data[1] for data in delta_data]
+        if num_graphs == 1:
+            ax = axs
+        else:
+            ax = axs[i]
+        ax.plot(iterations, deltas)
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Delta')
+        ax.set_title(f'Delta vs Iteration (Graph {i+1})')
+        ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_unscaled_potentials(unscaled_potentials_list):
+    num_graphs = len(unscaled_potentials_list)
+    fig, axs = plt.subplots(num_graphs, figsize=(10, num_graphs * 3))
+
+    for i, unscaled_potentials in enumerate(unscaled_potentials_list):
+        iterations = [data[0] for data in unscaled_potentials]
+        potentials = [data[1] for data in unscaled_potentials]
+        if num_graphs == 1:
+            ax = axs
+        else:
+            ax = axs[i]
+        ax.plot(iterations, potentials)
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Unscaled Potential')
+        ax.set_title(f'Unscaled Potential vs Iteration (Graph {i+1})')
+        ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
 def test():
     G, info = generate_random_graph(1000, 5000, (1, 100))
     visualize_graph(G)

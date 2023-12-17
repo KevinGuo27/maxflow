@@ -3,7 +3,7 @@ import networkx as nx
 import numpy as np
 from approximator_max_flow import ApproximatorMaxFlow
 from generate import generate_random_graph, create_info
-from generate import visualize_graph
+from generate import visualize_graph, plot_unscaled_potentials
 
 def timer_function(algorithm, *args, **kwargs):
     """
@@ -80,16 +80,15 @@ def test_approximator():
         return R
     
     def approximator_test():
-        # Create a sample graph G with random weights and demands
-        G = nx.complete_graph(5)
-        visualize_graph(G)
+        G = nx.complete_graph(10)
         for u, v in G.edges():
-            G[u][v]['capacity'] = np.random.randint(1, 3)
-        demands = np.random.randint(-2, 2, size=len(G.nodes()))
-        demands[-1] = -np.sum(demands[:-1])  # Adjust the last demand to make the sum zero
+            G[u][v]['capacity'] = np.random.randint(2, 5)
+        print("Capacities:", nx.get_edge_attributes(G, 'capacity'))
+        demands = np.random.randint(-2, 2, size=len(G.nodes))  # Example with 5 nodes
 
-        # demands = np.asarray([1, -1, 0, 0, 0])
-
+        # We only need to ensure that the sum of the demands is zero
+        demands = demands - np.mean(demands)
+        # We only need to ensure that the sum of the demands is zero
         print("Demands:", demands)
         for n, demand in zip(G.nodes(), demands):
             G.nodes[n]['demand'] = demand
@@ -103,11 +102,11 @@ def test_approximator():
         demands = np.array([G.nodes[n]['demand'] for n in range(len(G.nodes()))])
 
         # Instantiate the ApproximatorMaxFlow class and test the flow approximation
-        epsilon = 0.5
+        epsilon = 0.2
         info = create_info(G)
         approximator = ApproximatorMaxFlow(G, R, epsilon, info)  # B is not used in this context
-        result_flow = approximator(demands)
-        
+        result_flow, unscaled_potentials = approximator(demands)
+        plot_unscaled_potentials(unscaled_potentials)
         return result_flow
 
     # Run the test function
@@ -120,3 +119,4 @@ if __name__ == "__main__":
     # G.add_edges_from([('A', 'B', {'capacity': 3}), ('A', 'C', {'capacity': 3}), ('B', 'C', {'capacity': 2}), ('B', 'D', {'capacity': 3}), ('C', 'E', {'capacity': 2}), ('D', 'E', {'capacity': 4}), ('D', 'F', {'capacity': 2}), ('E', 'F', {'capacity': 3}), ('E', 'G', {'capacity': 2}), ('F', 'G', {'capacity': 3}), ('G', 'Z', {'capacity': 3})])
     # test_ford_fulkerson()
     test_approximator()
+    

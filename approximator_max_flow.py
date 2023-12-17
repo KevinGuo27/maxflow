@@ -19,7 +19,9 @@ class ApproximatorMaxFlow:
 
     def __call__(self, b0):
         b = [b0]
-        f, _ = self.almostRoute(b0, self.epsilon)
+        unscaled_potentials = []
+        f, _ , u = self.almostRoute(b0, self.epsilon)
+        unscaled_potentials.append(u)
         f = [f]
         T = int(np.log(2 * self.m))
 
@@ -28,7 +30,8 @@ class ApproximatorMaxFlow:
             # Update b_i based on the flow found in the previous iteration
             b.append(b[i - 1] - self.B.T.dot(f[i - 1]))
             # Find the flow f_i and the potential S_i using almostRoute
-            f_i, _ = self.almostRoute(b[i], 0.5)  # Using 0.5 as per the instructions
+            f_i, _ , u = self.almostRoute(b[i], 0.5)  # Using 0.5 as per the instructions
+            unscaled_potentials.append(u)
             f.append(f_i)
 
         # Find the last flow f_T+1 for a flow routing b_T+1 in a maximal spanning tree of G
@@ -44,7 +47,7 @@ class ApproximatorMaxFlow:
         print("b_T+1:", b_T_plus_1)
         print("Demand sent by total flow:", self.B.T @ total_flow)
         print("Demand sent by almostflow:", self.B.T @ np.sum(f, axis=0))
-        return total_flow
+        return total_flow, unscaled_potentials
         
     def route_in_tree(self, T, b):
         # Initialize the flow array for all edges in G to zero
@@ -63,13 +66,11 @@ class ApproximatorMaxFlow:
         visited = set()
 
         while leaves:
-            print("Leaves:", leaves)
             leaf = leaves.pop()
             visited.add(leaf)
 
             # There is only one neighbor for a leaf in a tree
             neighbors = list(T_copy.neighbors(leaf))
-            print("Neighbors:", neighbors)
             if(len(neighbors) == 0):
                 break
             if len(neighbors) != 1:
@@ -99,10 +100,9 @@ class ApproximatorMaxFlow:
         return f
 
 
-
-
     def almostRoute(self, b0, epsilon):
         f = np.zeros(self.m)
+        unscaled_potentials = []
         print("Initial approximated congestion:", self.R @ b0)
         scaling_factor = (16 * self.epsilon**-1 * np.log2(self.n)) / (2 * self.alpha * np.linalg.norm(self.R @ b0, ord=np.inf))
         b = b0 * scaling_factor
@@ -110,7 +110,6 @@ class ApproximatorMaxFlow:
         C = self.info["capacities"]
         C_inv = np.linalg.inv(C)
         count = 0
-        print(self.alpha**2 * self.epsilon**(-3) * np.log(self.n))
         while True:
             potential = self.potentialFunction(f, b)
             while potential < (16 * epsilon**-1 * np.log2(self.n)):
@@ -118,10 +117,11 @@ class ApproximatorMaxFlow:
                 b *= 17/16
                 scale *= 17/16
                 potential = self.potentialFunction(f, b)
+            
 
             count += 1
             # print("Iter:", count)
-
+            unscaled_potentials.append((count, potential / scale))
             # Calculate gradient and delta
             grad_potential = self.gradPotentialFunction(f, b)
             delta = np.linalg.norm(C @ grad_potential, ord=1)
@@ -147,7 +147,7 @@ class ApproximatorMaxFlow:
 
         # Assuming a method to calculate the potentials is defined
         v = self.calculatePotentials(f, b)
-        return f, v
+        return f, v, unscaled_potentials
     
     def calculatePotentials(self, f, b):
         x2 = 2 * self.alpha * self.R @ (b - self.B.T.dot(f))
@@ -184,14 +184,14 @@ class ApproximatorMaxFlow:
 
     def grad_lmax(self, x):
         # Calculate the sum of exp(xi) and exp(-xi) for all components
-        sum_exp = np.sum(np.exp(x) + np.exp(-x))
+        sum_exp = np.sum(np.exp(x) + np.exp(-x), axis=0)
         # Calculate the gradient of lmax
         grad = (np.exp(x) - np.exp(-x)) / sum_exp
         
         return grad
 
     def lmax(self, x):
-        return np.log(np.sum(np.exp(x) + np.exp(-x)))
+        return np.log(np.sum(np.exp(x) + np.exp(-x), axis=0))
 
     def potentialFunction(self, f, b):
         # Compute the element-wise inverse of C
